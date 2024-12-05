@@ -1,4 +1,4 @@
-import React, { useState, forwardRef } from 'react'
+import React, { useState, forwardRef, useImperativeHandle } from 'react'
 
 const JiraTicketForm = forwardRef(({ 
   id, 
@@ -54,6 +54,15 @@ const JiraTicketForm = forwardRef(({
   const isValid = () => {
     return formData.summary.trim() !== '';
   };
+
+  useImperativeHandle(ref, () => ({
+    getFormData: () => formData,
+    setCollapsed: (value) => handleCollapse(value),
+    isSubmitted: () => isSubmitted,
+    setSubmitted: (value) => setIsSubmitted(value),
+    validate: () => validateForm(),
+    isCollapsed: () => isCollapsed
+  }));
 
   if (isCollapsed) {
     return (

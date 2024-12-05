@@ -24,6 +24,16 @@ const JiraTicketList = () => {
     console.log('Submitting ticket:', data);
   };
 
+  const areAllTicketsSubmitted = () => {
+    const refs = Object.values(ticketRefs.current).filter(Boolean);
+    if (refs.length === 0) return false;
+
+    return refs.every(ref => {
+      console.log('Ticket submission status:', ref.isSubmitted()); // Debug log
+      return ref.isSubmitted();
+    });
+  };
+
   return (
     <div>
       {tickets.map(ticket => (
