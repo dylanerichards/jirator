@@ -2,120 +2,166 @@ import React, { useState, useRef } from 'react'
 import JiraTicketForm from './JiraTicketForm'
 
 const App = () => {
-  const [formCount, setFormCount] = useState(1)
-  const [notification, setNotification] = useState(null)
-  const [allCollapsed, setAllCollapsed] = useState(false)
-  const formRefs = useRef([])
-
-  const showNotification = (message, type = 'success') => {
-    setNotification({ message, type })
-    setTimeout(() => setNotification(null), 3000)
-  }
-
-  const removeForm = (index) => {
-    setFormCount(prev => prev - 1)
-    setTimeout(() => updateAllCollapsedState(), 0)
-  }
-
-  const handleSingleSubmit = (formData) => {
-    console.log('Single ticket submitted:', formData)
-    showNotification('Successfully submitted ticket!')
-  }
-
-  const handleBulkSubmit = () => {
-    const forms = formRefs.current.filter(ref => ref)
-    const unsubmittedForms = forms.filter(ref => !ref.isSubmitted())
-    
-    if (unsubmittedForms.length === 0) {
-      showNotification('All tickets have already been submitted', 'info')
-      return
+  const [tickets, setTickets] = useState([
+    {
+      id: 1,
+      data: {
+        summary: '',
+        description: '',
+        priority: 'Medium',
+        epic: '',
+        assignee: '',
+        labels: ''
+      }
     }
-    
-    const allValid = unsubmittedForms.every(ref => ref.validate())
-    
-    if (allValid) {
-      const allFormData = unsubmittedForms.map(ref => ref.getFormData())
-      console.log('Submitting tickets:', allFormData)
-      showNotification(`Successfully submitted ${allFormData.length} tickets!`)
-      
-      unsubmittedForms.forEach(ref => {
-        ref.setSubmitted(true)
-        ref.setCollapsed(true)
-      })
-    } else {
-      showNotification('Please fill in all required fields', 'error')
-    }
-  }
+  ]);
+  const [submitMessage, setSubmitMessage] = useState(null);
+  const [areAllCollapsed, setAreAllCollapsed] = useState(false);
+  const ticketRefs = useRef([]);
 
-  const updateAllCollapsedState = () => {
-    setTimeout(() => {
-      const forms = formRefs.current.filter(ref => ref)
-      const allFormsCollapsed = forms.length > 0 && forms.every(ref => ref.isCollapsed())
-      setAllCollapsed(allFormsCollapsed)
-    }, 0)
-  }
+  const handleRemove = (ticketId) => {
+    setTickets(prev => prev.filter(ticket => ticket.id !== ticketId));
+    setSubmitMessage(null);
+  };
+
+  const handleSubmit = (ticketId, data) => {
+    console.log('Submitting ticket:', data);
+  };
 
   const handleCollapseAll = () => {
-    formRefs.current
-      .filter(ref => ref)
-      .forEach(ref => ref.setCollapsed(true))
-    setAllCollapsed(true)
-  }
+    const refs = Object.values(ticketRefs.current).filter(Boolean);
+    refs.forEach(ref => {
+      ref.setCollapsed(true);
+    });
+    setAreAllCollapsed(true);
+  };
 
   const handleExpandAll = () => {
-    formRefs.current
-      .filter(ref => ref)
-      .forEach(ref => ref.setCollapsed(false))
-    setAllCollapsed(false)
-  }
+    const refs = Object.values(ticketRefs.current).filter(Boolean);
+    refs.forEach(ref => {
+      ref.setCollapsed(false);
+    });
+    setAreAllCollapsed(false);
+  };
+
+  const handleAddTicket = () => {
+    const newId = Math.max(0, ...tickets.map(t => t.id)) + 1;
+    setTickets(prev => [...prev, {
+      id: newId,
+      data: {
+        summary: '',
+        description: '',
+        priority: 'Medium',
+        epic: '',
+        assignee: '',
+        labels: ''
+      }
+    }]);
+  };
+
+  const handleSubmitAll = () => {
+    const refs = Object.values(ticketRefs.current).filter(Boolean);
+    let invalidCount = 0;
+    let validCount = 0;
+    let totalUnsubmitted = 0;
+    
+    // Count unsubmitted tickets and validate them
+    refs.forEach(ref => {
+      if (!ref.isSubmitted()) {
+        totalUnsubmitted++;
+        const isValid = ref.validate();
+        if (!isValid) {
+          ref.showValidationErrors();
+          invalidCount++;
+        }
+      }
+    });
+
+    // Submit all valid tickets
+    refs.forEach(ref => {
+      if (!ref.isSubmitted()) {
+        const isValid = ref.validate();
+        if (isValid) {
+          const data = ref.getFormData();
+          handleSubmit(null, data);
+          ref.setSubmitted(true);
+          validCount++;
+        }
+      }
+    });
+
+    // Always show a message about the results
+    if (totalUnsubmitted > 0) {
+      if (invalidCount > 0) {
+        setSubmitMessage({
+          type: 'warning',
+          text: `${validCount} of ${totalUnsubmitted} tickets submitted. ${invalidCount} ticket${invalidCount !== 1 ? 's' : ''} need${invalidCount === 1 ? 's' : ''} to be corrected.`
+        });
+      } else {
+        setSubmitMessage({
+          type: 'success',
+          text: `All ${validCount} ticket${validCount !== 1 ? 's' : ''} submitted successfully!`
+        });
+      }
+    }
+  };
 
   return (
-    <div className="container mx-auto p-4 relative">
-      {notification && (
-        <div className={`fixed top-4 right-4 px-6 py-3 rounded shadow-lg animate-fade-in ${
-          notification.type === 'error' ? 'bg-red-500' : 
-          notification.type === 'info' ? 'bg-blue-500' : 
-          'bg-green-500'
-        } text-white`}>
-          {notification.message}
+    <div className="container mx-auto p-4">
+      {submitMessage && (
+        <div 
+          className={`mb-4 p-4 ${
+            submitMessage.type === 'warning' 
+              ? 'bg-amber-50 border border-amber-200 text-amber-800' 
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+          }`}
+        >
+          {submitMessage.text}
         </div>
       )}
-
-      {[...Array(formCount)].map((_, index) => (
-        <JiraTicketForm 
-          key={index}
-          ref={ref => formRefs.current[index] = ref}
-          onRemove={() => removeForm(index)}
-          showRemoveButton={formCount > 1}
-          onSubmit={handleSingleSubmit}
-          onCollapseChange={() => updateAllCollapsedState()}
-        />
-      ))}
-
-      <div className="mt-4 flex gap-4">
+      <div className="flex justify-between mb-4">
+        <div className="flex gap-2">
+          <button
+            onClick={handleAddTicket}
+            className="bg-emerald-500 hover:bg-emerald-600 text-white font-medium py-2 px-4 transition-colors"
+            title="Add a new ticket"
+          >
+            Add Ticket
+          </button>
+          <button
+            onClick={areAllCollapsed ? handleExpandAll : handleCollapseAll}
+            className="bg-slate-500 hover:bg-slate-600 text-white font-medium py-2 px-4 transition-colors"
+            title={areAllCollapsed ? 'Expand all tickets' : 'Collapse all tickets'}
+          >
+            {areAllCollapsed ? 'Expand All' : 'Collapse All'}
+          </button>
+        </div>
         <button
-          onClick={() => setFormCount(prev => prev + 1)}
-          className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded flex-1"
+          onClick={() => handleSubmitAll()}
+          className="bg-indigo-500 hover:bg-indigo-600 text-white font-medium py-2 px-4 transition-colors"
+          title="Submit all tickets"
         >
-          + Add Another Ticket
-        </button>
-
-        <button
-          onClick={handleBulkSubmit}
-          className="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded flex-1"
-        >
-          Submit All Tickets
-        </button>
-
-        <button
-          onClick={allCollapsed ? handleExpandAll : handleCollapseAll}
-          className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded flex-1"
-        >
-          {allCollapsed ? 'Expand All' : 'Collapse All'}
+          Submit All
         </button>
       </div>
+      {tickets.map(ticket => (
+        <JiraTicketForm
+          key={ticket.id}
+          id={ticket.id}
+          initialData={ticket.data}
+          onRemove={() => handleRemove(ticket.id)}
+          onSubmit={(data) => handleSubmit(ticket.id, data)}
+          showRemoveButton={true}
+          onCollapseChange={() => {
+            const refs = Object.values(ticketRefs.current).filter(Boolean);
+            const allCollapsed = refs.every(ref => ref.isCollapsed());
+            setAreAllCollapsed(allCollapsed);
+          }}
+          ref={(el) => (ticketRefs.current[ticket.id] = el)}
+        />
+      ))}
     </div>
-  )
-}
+  );
+};
 
 export default App 
