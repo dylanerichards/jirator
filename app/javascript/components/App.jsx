@@ -88,7 +88,12 @@ const App = () => {
           validCount++;
         }
       }
+      // Collapse all tickets, regardless of submission status
+      ref.setCollapsed(true);
     });
+
+    // Update areAllCollapsed state
+    setAreAllCollapsed(true);
 
     // Always show a message about the results
     if (totalUnsubmitted > 0) {
