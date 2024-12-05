@@ -1,4 +1,5 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
+import React, { forwardRef, useImperativeHandle, useState } from 'react';
+import CollapsedTicket from './CollapsedTicket';
 
 const JiraTicketForm = forwardRef(({ 
   id, 
@@ -6,7 +7,7 @@ const JiraTicketForm = forwardRef(({
   onRemove, 
   showRemoveButton, 
   onSubmit, 
-  onCollapseChange
+  onCollapseChange 
 }, ref) => {
   const [formData, setFormData] = useState(initialData || {
     summary: '',
@@ -15,11 +16,11 @@ const JiraTicketForm = forwardRef(({
     epic: '',
     assignee: '',
     labels: ''
-  })
-  const [isCollapsed, setIsCollapsed] = useState(false)
-  const [errors, setErrors] = useState({})
-  const [isSubmitted, setIsSubmitted] = useState(false)
-  const [showValidation, setShowValidation] = useState(false)
+  });
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const handleCollapse = (value) => {
     setIsCollapsed(value)
@@ -82,77 +83,17 @@ const JiraTicketForm = forwardRef(({
 
   if (isCollapsed) {
     return (
-      <div 
-        className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 hover:bg-gray-100 transition-colors"
-      >
-        <div className="flex justify-between items-center">
-          <div 
-            className="flex-1 cursor-pointer"
-            onClick={() => handleCollapse(false)}
-          >
-            <span className="font-medium">{formData.summary}</span>
-            <span className="mx-2 text-gray-400">|</span>
-            <span className="text-gray-600">Epic: {formData.epic}</span>
-            {isSubmitted && (
-              <span className="ml-2 text-green-500 text-sm">✓ Submitted</span>
-            )}
-          </div>
-          <div className="flex items-center gap-4">
-            {showValidation && !isValid() && (
-              <div className="text-red-500 text-sm">
-                <ul className="list-none">
-                  {!formData.summary.trim() && (
-                    <li>Summary is required</li>
-                  )}
-                  {!formData.epic.trim() && (
-                    <li>Epic is required</li>
-                  )}
-                </ul>
-              </div>
-            )}
-            <div className="flex gap-2">
-              {!isSubmitted && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (!isValid()) {
-                      validateForm();
-                      setShowValidation(true);
-                    } else {
-                      handleSubmit(e);
-                    }
-                  }}
-                  className={`${
-                    isValid()
-                      ? 'bg-blue-500 hover:bg-blue-700'
-                      : 'bg-gray-400'
-                  } text-white font-bold py-1 px-3 rounded text-sm`}
-                >
-                  Submit
-                </button>
-              )}
-              {showRemoveButton && !isSubmitted && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove();
-                  }}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        
-        <div 
-          className="text-sm text-gray-500 mt-1 cursor-pointer"
-          onClick={() => handleCollapse(false)}
-        >
-          Click to {isSubmitted ? 'view details' : 'edit'}
-        </div>
-      </div>
+      <CollapsedTicket
+        formData={formData}
+        isSubmitted={isSubmitted}
+        showValidation={showValidation}
+        isValid={isValid}
+        validateForm={validateForm}
+        handleSubmit={handleSubmit}
+        handleCollapse={handleCollapse}
+        onRemove={onRemove}
+        showRemoveButton={showRemoveButton}
+      />
     );
   }
 
