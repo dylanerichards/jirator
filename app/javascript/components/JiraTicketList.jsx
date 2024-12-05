@@ -24,14 +24,50 @@ const JiraTicketList = () => {
     console.log('Submitting ticket:', data);
   };
 
-  const areAllTicketsSubmitted = () => {
+  const handleSubmitAll = () => {
     const refs = Object.values(ticketRefs.current).filter(Boolean);
-    if (refs.length === 0) return false;
-
-    return refs.every(ref => {
-      console.log('Ticket submission status:', ref.isSubmitted()); // Debug log
-      return ref.isSubmitted();
+    let invalidCount = 0;
+    let validCount = 0;
+    
+    console.log('Starting submit all process');
+    
+    // First pass: validate all tickets and collect results
+    const validationResults = refs.map(ref => {
+      if (!ref.isSubmitted()) {
+        console.log('Validating ticket');
+        const isValid = ref.validate(); // First validate to check
+        console.log('Ticket valid?', isValid);
+        
+        if (!isValid) {
+          ref.showValidationErrors(); // Explicitly call showValidationErrors for invalid tickets
+          invalidCount++;
+        }
+        return { ref, isValid };
+      }
+      return { ref, isValid: true };
     });
+
+    // Second pass: submit only the valid tickets
+    validationResults.forEach(({ ref, isValid }) => {
+      if (!ref.isSubmitted() && isValid) {
+        const data = ref.getFormData();
+        handleSubmit(null, data);
+        ref.setSubmitted(true);
+        validCount++;
+      }
+    });
+
+    if (invalidCount > 0) {
+      setSubmitMessage({
+        type: 'warning',
+        text: `${validCount} ticket${validCount !== 1 ? 's' : ''} submitted successfully. ${invalidCount} ticket${invalidCount !== 1 ? 's' : ''} could not be submitted due to validation errors. Please fix the errors and try submitting again.`
+      });
+    } else if (validCount > 0) {
+      setSubmitMessage({
+        type: 'success',
+        text: `All tickets submitted successfully!`
+      });
+    }
   };
 
   return (

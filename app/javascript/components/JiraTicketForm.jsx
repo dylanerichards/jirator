@@ -19,6 +19,7 @@ const JiraTicketForm = forwardRef(({
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [errors, setErrors] = useState({})
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [showValidation, setShowValidation] = useState(false)
 
   const handleCollapse = (value) => {
     setIsCollapsed(value)
@@ -47,12 +48,15 @@ const JiraTicketForm = forwardRef(({
     if (!formData.summary.trim()) {
       newErrors.summary = 'Summary is required'
     }
+    if (!formData.epic.trim()) {
+      newErrors.epic = 'Epic is required'
+    }
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
   const isValid = () => {
-    return formData.summary.trim() !== '';
+    return formData.summary.trim() !== '' && formData.epic.trim() !== '';
   };
 
   useImperativeHandle(ref, () => ({
@@ -60,8 +64,20 @@ const JiraTicketForm = forwardRef(({
     setCollapsed: (value) => handleCollapse(value),
     isSubmitted: () => isSubmitted,
     setSubmitted: (value) => setIsSubmitted(value),
-    validate: () => validateForm(),
-    isCollapsed: () => isCollapsed
+    validate: () => {
+      console.log('Validating form');
+      const result = validateForm();
+      if (!result) {
+        setShowValidation(true);
+      }
+      console.log('Validation result:', result, 'showValidation:', showValidation);
+      return result;
+    },
+    isCollapsed: () => isCollapsed,
+    showValidationErrors: () => {
+      console.log('Setting showValidation to true');
+      setShowValidation(true);
+    }
   }));
 
   if (isCollapsed) {
@@ -81,37 +97,55 @@ const JiraTicketForm = forwardRef(({
               <span className="ml-2 text-green-500 text-sm">✓ Submitted</span>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {!isSubmitted && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleSubmit(e);
-                }}
-                disabled={!isValid()}
-                className={`${
-                  isValid()
-                    ? 'bg-blue-500 hover:bg-blue-700'
-                    : 'bg-gray-400 cursor-not-allowed'
-                } text-white font-bold py-1 px-3 rounded text-sm`}
-                title={!isValid() ? 'Summary is required' : ''}
-              >
-                Submit
-              </button>
+          <div className="flex items-center gap-4">
+            {showValidation && !isValid() && (
+              <div className="text-red-500 text-sm">
+                <ul className="list-none">
+                  {!formData.summary.trim() && (
+                    <li>Summary is required</li>
+                  )}
+                  {!formData.epic.trim() && (
+                    <li>Epic is required</li>
+                  )}
+                </ul>
+              </div>
             )}
-            {showRemoveButton && !isSubmitted && (
-              <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onRemove();
-                }}
-                className="text-red-500 hover:text-red-700"
-              >
-                ✕
-              </button>
-            )}
+            <div className="flex gap-2">
+              {!isSubmitted && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isValid()) {
+                      validateForm();
+                      setShowValidation(true);
+                    } else {
+                      handleSubmit(e);
+                    }
+                  }}
+                  className={`${
+                    isValid()
+                      ? 'bg-blue-500 hover:bg-blue-700'
+                      : 'bg-gray-400'
+                  } text-white font-bold py-1 px-3 rounded text-sm`}
+                >
+                  Submit
+                </button>
+              )}
+              {showRemoveButton && !isSubmitted && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemove();
+                  }}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
+        
         <div 
           className="text-sm text-gray-500 mt-1 cursor-pointer"
           onClick={() => handleCollapse(false)}
@@ -119,7 +153,7 @@ const JiraTicketForm = forwardRef(({
           Click to {isSubmitted ? 'view details' : 'edit'}
         </div>
       </div>
-    )
+    );
   }
 
   return (
