@@ -1,7 +1,14 @@
-import React, { useState, forwardRef, useImperativeHandle } from 'react'
+import React, { useState, forwardRef } from 'react'
 
-const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCollapseChange }, ref) => {
-  const [formData, setFormData] = useState({
+const JiraTicketForm = forwardRef(({ 
+  id, 
+  initialData, 
+  onRemove, 
+  showRemoveButton, 
+  onSubmit, 
+  onCollapseChange
+}, ref) => {
+  const [formData, setFormData] = useState(initialData || {
     summary: '',
     description: '',
     priority: 'Medium',
@@ -16,24 +23,6 @@ const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCol
   const handleCollapse = (value) => {
     setIsCollapsed(value)
     setTimeout(() => onCollapseChange?.(), 0)
-  }
-
-  useImperativeHandle(ref, () => ({
-    getFormData: () => formData,
-    setCollapsed: (value) => handleCollapse(value),
-    isSubmitted: () => isSubmitted,
-    setSubmitted: (value) => setIsSubmitted(value),
-    validate: () => validateForm(),
-    isCollapsed: () => isCollapsed
-  }))
-
-  const validateForm = () => {
-    const newErrors = {}
-    if (!formData.summary.trim()) {
-      newErrors.summary = 'Summary is required'
-    }
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
   }
 
   const handleChange = (key, value) => {
@@ -53,14 +42,29 @@ const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCol
     }
   }
 
+  const validateForm = () => {
+    const newErrors = {}
+    if (!formData.summary.trim()) {
+      newErrors.summary = 'Summary is required'
+    }
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const isValid = () => {
+    return formData.summary.trim() !== '';
+  };
+
   if (isCollapsed) {
     return (
       <div 
         className="bg-gray-50 p-4 rounded-lg mb-4 border border-gray-200 hover:bg-gray-100 transition-colors"
-        onClick={() => handleCollapse(false)}
       >
         <div className="flex justify-between items-center">
-          <div className="flex-1 cursor-pointer">
+          <div 
+            className="flex-1 cursor-pointer"
+            onClick={() => handleCollapse(false)}
+          >
             <span className="font-medium">{formData.summary}</span>
             <span className="mx-2 text-gray-400">|</span>
             <span className="text-gray-600">Epic: {formData.epic}</span>
@@ -68,19 +72,41 @@ const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCol
               <span className="ml-2 text-green-500 text-sm">✓ Submitted</span>
             )}
           </div>
-          {showRemoveButton && !isSubmitted && (
-            <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onRemove();
-              }}
-              className="text-red-500 hover:text-red-700 ml-2"
-            >
-              ✕
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {!isSubmitted && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleSubmit(e);
+                }}
+                disabled={!isValid()}
+                className={`${
+                  isValid()
+                    ? 'bg-blue-500 hover:bg-blue-700'
+                    : 'bg-gray-400 cursor-not-allowed'
+                } text-white font-bold py-1 px-3 rounded text-sm`}
+                title={!isValid() ? 'Summary is required' : ''}
+              >
+                Submit
+              </button>
+            )}
+            {showRemoveButton && !isSubmitted && (
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove();
+                }}
+                className="text-red-500 hover:text-red-700"
+              >
+                ✕
+              </button>
+            )}
+          </div>
         </div>
-        <div className="text-sm text-gray-500 mt-1">
+        <div 
+          className="text-sm text-gray-500 mt-1 cursor-pointer"
+          onClick={() => handleCollapse(false)}
+        >
           Click to {isSubmitted ? 'view details' : 'edit'}
         </div>
       </div>
@@ -109,13 +135,19 @@ const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCol
       <div className="font-mono">
         {'{'}
         {Object.entries(formData).map(([key, value], index, array) => (
-          <div key={key} className="ml-4">
-            <span className="font-bold">"{key}"</span>: 
+          <div key={key} className="ml-8 mb-8 flex items-center">
+            <label 
+              htmlFor={`input-${key}`} 
+              className="font-bold self-start mt-2 w-24 text-right cursor-pointer"
+            >
+              "{key}":
+            </label>
             {key === 'description' ? (
               <textarea
+                id={`input-${key}`}
                 value={value}
                 onChange={(e) => handleChange(key, e.target.value)}
-                className={`w-full p-2 ml-2 rounded border font-sans ${
+                className={`w-1/2 p-2 ml-12 rounded border font-sans ${
                   isSubmitted 
                     ? 'bg-gray-100 text-gray-600 border-gray-200' 
                     : errors[key] 
@@ -127,10 +159,11 @@ const JiraTicketForm = forwardRef(({ onRemove, showRemoveButton, onSubmit, onCol
               />
             ) : (
               <input
+                id={`input-${key}`}
                 type="text"
                 value={value}
                 onChange={(e) => handleChange(key, e.target.value)}
-                className={`p-2 ml-2 rounded border font-sans ${
+                className={`p-2 ml-12 rounded border font-sans ${
                   isSubmitted 
                     ? 'bg-gray-100 text-gray-600 border-gray-200' 
                     : errors[key] 
