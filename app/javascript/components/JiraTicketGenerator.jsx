@@ -78,16 +78,19 @@ const JiraTicketGenerator = () => {
       return;
     }
 
-    // First validate all tickets
-    const invalidTickets = ticketElements.filter(
-      ticket => ticket && !ticket.isSubmitted() && !ticket.isValid()
-    );
+    // First validate all tickets and show validation errors
+    let invalidCount = 0;
+    ticketElements.forEach(ticket => {
+      if (!ticket.isSubmitted() && !ticket.isValid()) {
+        ticket.showValidationErrors();
+        invalidCount++;
+      }
+    });
 
-    if (invalidTickets.length > 0) {
-      invalidTickets.forEach(ticket => ticket.showValidationErrors());
+    if (invalidCount > 0) {
       setSubmitMessage({
         type: 'warning',
-        text: `${invalidTickets.length} ticket${invalidTickets.length !== 1 ? 's' : ''} need${invalidTickets.length === 1 ? 's' : ''} to be corrected.`
+        text: `${invalidCount} ticket${invalidCount !== 1 ? 's' : ''} need${invalidCount === 1 ? 's' : ''} to be corrected.`
       });
       return;
     }

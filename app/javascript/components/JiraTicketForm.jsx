@@ -185,7 +185,10 @@ const JiraTicketForm = forwardRef(({
     isValid: () => isValid(),
     isSubmitted: () => isSubmitted,
     validate: validateForm,
-    showValidationErrors: () => setShowValidation(true),
+    showValidationErrors: () => {
+      validateForm();  // Call validateForm to set the errors
+      setShowValidation(true);  // Show the validation state
+    },
     getFormData: () => formData,
     setCollapsed: handleCollapse,
     isCollapsed: () => isCollapsed
