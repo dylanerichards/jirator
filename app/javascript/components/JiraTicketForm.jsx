@@ -27,19 +27,11 @@ const JiraTicketForm = forwardRef(({
   const [projectKey, setProjectKey] = useState(null);
 
   useEffect(() => {
-    console.log('Fetching config...');
     fetch('/api/config')
-      .then(response => {
-        console.log('Config response:', response);
-        return response.json();
-      })
+      .then(response => response.json())
       .then(data => {
-        console.log('Config data received:', data);
         if (data.jira_project_key) {
-          console.log('Setting project key:', data.jira_project_key);
           setProjectKey(data.jira_project_key);
-        } else {
-          console.error('No project key in response');
         }
       })
       .catch(error => {
@@ -59,14 +51,6 @@ const JiraTicketForm = forwardRef(({
   };
 
   const isValid = () => {
-    console.log('Checking validity:', {
-      summary: formData.summary,
-      epic: formData.epic,
-      projectKey,
-      summaryValid: formData.summary.trim() !== '',
-      epicValid: formData.epic.trim() !== '',
-      projectKeyValid: projectKey !== null && projectKey !== undefined
-    });
     return formData.summary.trim() !== '' && 
            formData.epic.trim() !== '' && 
            projectKey !== null && 
@@ -84,28 +68,19 @@ const JiraTicketForm = forwardRef(({
     if (!projectKey) {
       newErrors.projectKey = 'Project key is missing';
     }
-    console.log('Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    console.log('Submit clicked, projectKey:', projectKey);
-    console.log('Form data:', formData);
     
     if (!isValid()) {
-      console.log('Validation failed:', { 
-        summaryValid: formData.summary.trim() !== '',
-        epicValid: formData.epic.trim() !== '',
-        hasProjectKey: projectKey !== null
-      });
       validateForm();
       setShowValidation(true);
       return;
     }
 
-    console.log('Validation passed, proceeding with submission');
     setIsLoading(true);
     try {
       const response = await fetch('/api/jira_tickets', {
@@ -155,10 +130,10 @@ const JiraTicketForm = forwardRef(({
 
     if (value) {
       requestAnimationFrame(() => {
-        element.style.height = '80px';
+        element.style.height = '120px';
       });
     } else {
-      element.style.height = '80px';
+      element.style.height = '120px';
       requestAnimationFrame(() => {
         element.style.height = element.scrollHeight + 'px';
         setTimeout(() => {
@@ -349,7 +324,6 @@ const JiraTicketForm = forwardRef(({
         <button
           type="button"
           onClick={() => {
-            console.log('Submit button clicked');
             handleSubmit();
           }}
           disabled={!isValid() || isSubmitted || isLoading}
@@ -403,21 +377,6 @@ const JiraTicketForm = forwardRef(({
     <div id={`ticket-${id}`} className={wrapperClasses}>
       <div ref={contentRef}>
         {content}
-        <pre className="text-xs text-gray-500 mt-2">
-          Debug: {JSON.stringify({
-            formData,
-            projectKey,
-            isValid: isValid(),
-            validationDetails: {
-              summaryValid: formData.summary.trim() !== '',
-              epicValid: formData.epic.trim() !== '',
-              projectKeyValid: projectKey !== null && projectKey !== undefined
-            },
-            errors,
-            isSubmitted,
-            isLoading
-          }, null, 2)}
-        </pre>
       </div>
     </div>
   );
