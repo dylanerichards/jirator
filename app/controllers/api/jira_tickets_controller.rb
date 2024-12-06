@@ -48,7 +48,6 @@ class Api::JiraTicketsController < ApplicationController
     params.require(:ticket).permit(
       :summary,
       :description,
-      :priority,
       :epic,
       :assignee,
       :labels,

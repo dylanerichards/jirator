@@ -35,7 +35,6 @@ class JiraService
           ]
         },
         issuetype: { name: "Task" },
-        priority: { name: ticket_data[:priority] },
         labels: ticket_data[:labels]&.split(',')&.map(&:strip),
         assignee: ticket_data[:assignee].present? ? { id: find_user_id(ticket_data[:assignee]) } : nil
       }

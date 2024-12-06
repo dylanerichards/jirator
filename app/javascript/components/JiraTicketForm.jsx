@@ -12,7 +12,6 @@ const JiraTicketForm = forwardRef(({
   const [formData, setFormData] = useState(initialData || {
     summary: '',
     description: '',
-    priority: 'Medium',
     epic: '',
     assignee: '',
     labels: ''
@@ -277,30 +276,6 @@ const JiraTicketForm = forwardRef(({
                   rows={3}
                   className="w-full p-1 font-sans border border-gray-300 rounded"
                 />
-              )}
-            </div>
-            <span className="ml-2 text-gray-600">,</span>
-          </div>
-
-          <div className="flex items-start">
-            <span className="text-blue-600">"priority"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded">
-                  {formData.priority}
-                </div>
-              ) : (
-                <select
-                  name="priority"
-                  value={formData.priority}
-                  onChange={handleInputChange}
-                  className="w-full p-1 font-sans border border-gray-300 rounded"
-                >
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                </select>
               )}
             </div>
             <span className="ml-2 text-gray-600">,</span>
