@@ -1,9 +1,49 @@
+import React, { useState, useRef } from 'react';
+import CategoryManager from './CategoryManager';
+import confetti from 'canvas-confetti';
+
 const JiraTicketGenerator = () => {
-  const [tickets, setTickets] = useState([{ id: 1 }]);
+  const [tickets, setTickets] = useState([{ 
+    id: 1, 
+    categoryId: 'default'
+  }]);
+  const [submitMessage, setSubmitMessage] = useState(null);
   const ticketRefs = useRef({});
 
+  const showFireworks = () => {
+    const duration = 3000;
+    const animationEnd = Date.now() + duration;
+    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+
+    function randomInRange(min, max) {
+      return Math.random() * (max - min) + min;
+    }
+
+    const interval = setInterval(function() {
+      const timeLeft = animationEnd - Date.now();
+
+      if (timeLeft <= 0) {
+        return clearInterval(interval);
+      }
+
+      const particleCount = 50 * (timeLeft / duration);
+      // since particles fall down, start a bit higher than random
+      confetti(Object.assign({}, defaults, { 
+        particleCount,
+        origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 }
+      }));
+      confetti(Object.assign({}, defaults, { 
+        particleCount,
+        origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 }
+      }));
+    }, 250);
+  };
+
   const handleAddTicket = () => {
-    setTickets(prev => [...prev, { id: prev.length + 1 }]);
+    setTickets(prev => [...prev, { 
+      id: prev.length + 1,
+      categoryId: 'default'
+    }]);
   };
 
   const handleRemoveTicket = (id) => {
@@ -14,13 +54,14 @@ const JiraTicketGenerator = () => {
     console.log('Submitting all tickets...');
     const ticketElements = Object.values(ticketRefs.current);
     
-    // Check if there are any tickets to submit
     if (ticketElements.length === 0) {
-      alert('No tickets to submit');
+      setSubmitMessage({
+        type: 'warning',
+        text: 'No tickets to submit'
+      });
       return;
     }
 
-    // Filter out already submitted tickets and invalid tickets
     const pendingTickets = ticketElements.filter(
       ticket => ticket && !ticket.isSubmitted() && ticket.isValid()
     );
@@ -28,26 +69,61 @@ const JiraTicketGenerator = () => {
     console.log('Pending tickets:', pendingTickets.length);
 
     if (pendingTickets.length === 0) {
-      alert('No valid tickets to submit');
+      setSubmitMessage({
+        type: 'warning',
+        text: 'No valid tickets to submit'
+      });
       return;
     }
+
+    let successCount = 0;
+    let errorCount = 0;
 
     // Submit all tickets in sequence
     for (const ticket of pendingTickets) {
       try {
         await ticket.submit();
+        successCount++;
         console.log('Ticket submitted successfully');
       } catch (error) {
+        errorCount++;
         console.error('Error submitting ticket:', error);
-        // Continue with next ticket even if one fails
       }
     }
 
-    console.log('All tickets submitted');
+    if (errorCount === 0) {
+      setSubmitMessage({
+        type: 'success',
+        text: `All ${successCount} ticket${successCount !== 1 ? 's' : ''} submitted successfully!`
+      });
+      showFireworks();
+    } else {
+      setSubmitMessage({
+        type: 'warning',
+        text: `${successCount} of ${pendingTickets.length} tickets submitted. ${errorCount} ticket${errorCount !== 1 ? 's' : ''} failed.`
+      });
+    }
+  };
+
+  const handleMoveTicket = (ticketId, categoryId) => {
+    setTickets(prev => prev.map(ticket => 
+      ticket.id === parseInt(ticketId) ? { ...ticket, categoryId } : ticket
+    ));
   };
 
   return (
     <div className="p-4">
+      {submitMessage && (
+        <div 
+          className={`mb-4 p-4 rounded-md ${
+            submitMessage.type === 'warning' 
+              ? 'bg-amber-50 border border-amber-200 text-amber-800' 
+              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+          }`}
+        >
+          {submitMessage.text}
+        </div>
+      )}
       <div className="flex justify-between items-center mb-4">
         <h1 className="text-xl font-bold">JIRA Ticket Generator</h1>
         <div className="space-x-2">
@@ -66,23 +142,21 @@ const JiraTicketGenerator = () => {
         </div>
       </div>
 
-      <div className="space-y-4">
-        {tickets.map(ticket => (
-          <JiraTicketForm
-            key={ticket.id}
-            ref={el => ticketRefs.current[ticket.id] = el}
-            id={ticket.id}
-            onRemove={() => handleRemoveTicket(ticket.id)}
-            showRemoveButton={tickets.length > 1}
-            onSubmit={(data) => {
-              console.log(`Ticket ${ticket.id} submitted:`, data);
-            }}
-            onCollapseChange={() => {
-              // Handle collapse change if needed
-            }}
-          />
-        ))}
-      </div>
+      <CategoryManager 
+        tickets={tickets.map(ticket => ({
+          ...ticket,
+          ref: el => ticketRefs.current[ticket.id] = el,
+          onRemove: () => handleRemoveTicket(ticket.id),
+          onSubmit: (data) => {
+            console.log(`Ticket ${ticket.id} submitted:`, data);
+          },
+          showRemoveButton: tickets.length > 1,
+          onCollapseChange: () => {
+            // Handle collapse change if needed
+          }
+        }))}
+        onMoveTicket={handleMoveTicket}
+      />
     </div>
   );
 };
