@@ -12,7 +12,10 @@ const JiraTicketForm = forwardRef(({
   showRemoveButton, 
   onSubmit, 
   onCollapseChange,
-  isSubmitted
+  isSubmitted,
+  defaultCollapsed = false,
+  ticketKey: initialTicketKey = null,
+  jiraUrl: initialJiraUrl = null
 }, ref) => {
   const [formData, setFormData] = useState(initialData || {
     summary: '',
@@ -21,7 +24,7 @@ const JiraTicketForm = forwardRef(({
     assignee: '',
     labels: ''
   });
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
   const [errors, setErrors] = useState({});
   const [showValidation, setShowValidation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,22 +32,29 @@ const JiraTicketForm = forwardRef(({
   const [isNew, setIsNew] = useState(true);
   const contentRef = useRef(null);
   const [projectKey, setProjectKey] = useState(null);
-  const [ticketKey, setTicketKey] = useState(null);
-  const [jiraUrl, setJiraUrl] = useState(null);
+  const [ticketKey, setTicketKey] = useState(initialTicketKey);
+  const [jiraUrl, setJiraUrl] = useState(initialJiraUrl);
 
   useEffect(() => {
-    fetch('/api/config')
-      .then(response => response.json())
-      .then(data => {
-        if (data.jira_project_key) {
-          setProjectKey(data.jira_project_key);
-          setJiraUrl(data.jira_base_url || 'your-domain.atlassian.net');
-        }
-      })
-      .catch(error => {
-        console.error('Error fetching config:', error);
-      });
-  }, []);
+    if (!jiraUrl) {
+      fetch('/api/config')
+        .then(response => response.json())
+        .then(data => {
+          if (data.jira_project_key) {
+            setProjectKey(data.jira_project_key);
+            setJiraUrl(data.jira_base_url || 'your-domain.atlassian.net');
+          }
+        })
+        .catch(error => {
+          console.error('Error fetching config:', error);
+        });
+    }
+  }, [jiraUrl]);
+
+  useEffect(() => {
+    setTicketKey(initialTicketKey);
+    setJiraUrl(initialJiraUrl);
+  }, [initialTicketKey, initialJiraUrl]);
 
   useEffect(() => {
     if (onChange) {
@@ -117,7 +127,7 @@ const JiraTicketForm = forwardRef(({
       
       if (data.success) {
         setTicketKey(data.ticket_key);
-        onSubmit(formData);
+        onSubmit(formData, data.ticket_key, jiraUrl);
         return true;
       } else {
         console.error('Failed to create JIRA ticket:', data.error);
@@ -162,7 +172,7 @@ const JiraTicketForm = forwardRef(({
     }
 
     setIsCollapsed(value);
-    onCollapseChange();
+    onCollapseChange(value);
   };
 
   const handleRemove = (e) => {

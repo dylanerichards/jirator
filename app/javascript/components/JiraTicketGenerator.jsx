@@ -7,6 +7,9 @@ const JiraTicketGenerator = () => {
     id: 1, 
     categoryId: 'default',
     isSubmitted: false,
+    isCollapsed: false,
+    ticketKey: null,
+    jiraUrl: null,
     data: { 
       summary: '',
       description: '',
@@ -52,6 +55,9 @@ const JiraTicketGenerator = () => {
       id: prev.length + 1,
       categoryId: 'default',
       isSubmitted: false,
+      isCollapsed: false,
+      ticketKey: null,
+      jiraUrl: null,
       data: { 
         summary: '',
         description: '',
@@ -157,10 +163,23 @@ const JiraTicketGenerator = () => {
     ));
   };
 
-  const handleTicketSubmitted = (ticketId) => {
+  const handleTicketSubmitted = (ticketId, ticketKey, jiraUrl) => {
     setTickets(prev => prev.map(ticket => 
       ticket.id === ticketId 
-        ? { ...ticket, isSubmitted: true }
+        ? { 
+            ...ticket, 
+            isSubmitted: true,
+            ticketKey,
+            jiraUrl
+          }
+        : ticket
+    ));
+  };
+
+  const handleCollapseChange = (ticketId, isCollapsed) => {
+    setTickets(prev => prev.map(ticket => 
+      ticket.id === ticketId 
+        ? { ...ticket, isCollapsed }
         : ticket
     ));
   };
@@ -197,25 +216,26 @@ const JiraTicketGenerator = () => {
 
       <CategoryManager 
         tickets={tickets.map(ticket => {
-          const ref = React.createRef();  // Create a ref for each ticket
-          ticketRefs.current[ticket.id] = ref;  // Store the ref
+          const ref = React.createRef();
+          ticketRefs.current[ticket.id] = ref;
           
           return {
             ...ticket,
-            ref,  // Pass the ref instead of the ref callback
+            ref,
             onRemove: () => handleRemoveTicket(ticket.id),
-            onSubmit: (data) => {
+            onSubmit: (data, ticketKey, jiraUrl) => {
               handleTicketDataUpdate(ticket.id, data);
-              handleTicketSubmitted(ticket.id);
+              handleTicketSubmitted(ticket.id, ticketKey, jiraUrl);
               console.log(`Ticket ${ticket.id} submitted:`, data);
             },
             showRemoveButton: tickets.length > 1,
-            onCollapseChange: () => {
-              // Handle collapse change if needed
-            },
+            onCollapseChange: (isCollapsed) => handleCollapseChange(ticket.id, isCollapsed),
             initialData: ticket.data,
             onChange: (newData) => !ticket.isSubmitted && handleTicketDataUpdate(ticket.id, newData),
-            isSubmitted: ticket.isSubmitted
+            isSubmitted: ticket.isSubmitted,
+            defaultCollapsed: ticket.isCollapsed,
+            ticketKey: ticket.ticketKey,
+            jiraUrl: ticket.jiraUrl
           };
         })}
         onMoveTicket={handleMoveTicket}
