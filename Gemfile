@@ -43,6 +43,8 @@ group :development, :test do
 
   # Omakase Ruby styling [https://github.com/rails/rubocop-rails-omakase/]
   gem "rubocop-rails-omakase", require: false
+
+  gem 'dotenv-rails'
 end
 
 group :development do
@@ -58,3 +60,4 @@ end
 
 gem 'jsbundling-rails'
 gem 'cssbundling-rails'
+gem 'httparty'

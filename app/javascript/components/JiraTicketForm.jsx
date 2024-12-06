@@ -7,7 +7,7 @@ const JiraTicketForm = forwardRef(({
   onRemove, 
   showRemoveButton, 
   onSubmit, 
-  onCollapseChange 
+  onCollapseChange
 }, ref) => {
   const [formData, setFormData] = useState(initialData || {
     summary: '',
@@ -25,6 +25,28 @@ const JiraTicketForm = forwardRef(({
   const [isRemoving, setIsRemoving] = useState(false);
   const [isNew, setIsNew] = useState(true);
   const contentRef = useRef(null);
+  const [projectKey, setProjectKey] = useState(null);
+
+  useEffect(() => {
+    console.log('Fetching config...');
+    fetch('/api/config')
+      .then(response => {
+        console.log('Config response:', response);
+        return response.json();
+      })
+      .then(data => {
+        console.log('Config data received:', data);
+        if (data.jira_project_key) {
+          console.log('Setting project key:', data.jira_project_key);
+          setProjectKey(data.jira_project_key);
+        } else {
+          console.error('No project key in response');
+        }
+      })
+      .catch(error => {
+        console.error('Error fetching config:', error);
+      });
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -38,7 +60,18 @@ const JiraTicketForm = forwardRef(({
   };
 
   const isValid = () => {
-    return formData.summary.trim() !== '' && formData.epic.trim() !== '';
+    console.log('Checking validity:', {
+      summary: formData.summary,
+      epic: formData.epic,
+      projectKey,
+      summaryValid: formData.summary.trim() !== '',
+      epicValid: formData.epic.trim() !== '',
+      projectKeyValid: projectKey !== null && projectKey !== undefined
+    });
+    return formData.summary.trim() !== '' && 
+           formData.epic.trim() !== '' && 
+           projectKey !== null && 
+           projectKey !== undefined;
   };
 
   const validateForm = () => {
@@ -49,21 +82,62 @@ const JiraTicketForm = forwardRef(({
     if (!formData.epic.trim()) {
       newErrors.epic = 'Epic is required';
     }
+    if (!projectKey) {
+      newErrors.projectKey = 'Project key is missing';
+    }
+    console.log('Validation errors:', newErrors);
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    console.log('Submit clicked, projectKey:', projectKey);
+    console.log('Form data:', formData);
+    
     if (!isValid()) {
+      console.log('Validation failed:', { 
+        summaryValid: formData.summary.trim() !== '',
+        epicValid: formData.epic.trim() !== '',
+        hasProjectKey: projectKey !== null
+      });
       validateForm();
       setShowValidation(true);
       return;
     }
+
+    console.log('Validation passed, proceeding with submission');
     setIsLoading(true);
-    await onSubmit(formData);
-    setIsLoading(false);
-    setIsSubmitted(true);
+    try {
+      const response = await fetch('/api/jira_tickets', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': document.querySelector('[name="csrf-token"]').content
+        },
+        body: JSON.stringify({
+          ticket: {
+            ...formData,
+            project_key: projectKey
+          }
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setIsSubmitted(true);
+        onSubmit({ ...formData, ticketKey: data.ticket_key });
+      } else {
+        console.error('Failed to create JIRA ticket:', data.error);
+        alert(`Failed to create JIRA ticket: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating JIRA ticket:', error);
+      alert('Error creating JIRA ticket. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -304,7 +378,11 @@ const JiraTicketForm = forwardRef(({
 
       <div className="flex justify-end gap-2 mt-4">
         <button
-          onClick={handleSubmit}
+          type="button"
+          onClick={() => {
+            console.log('Submit button clicked');
+            handleSubmit();
+          }}
           disabled={!isValid() || isSubmitted || isLoading}
           className={`${
             isValid() && !isSubmitted && !isLoading
@@ -324,6 +402,7 @@ const JiraTicketForm = forwardRef(({
         </button>
         {showRemoveButton && !isSubmitted && (
           <button
+            type="button"
             onClick={handleRemove}
             className="bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded transition-colors"
             disabled={isLoading}
@@ -355,6 +434,21 @@ const JiraTicketForm = forwardRef(({
     <div id={`ticket-${id}`} className={wrapperClasses}>
       <div ref={contentRef}>
         {content}
+        <pre className="text-xs text-gray-500 mt-2">
+          Debug: {JSON.stringify({
+            formData,
+            projectKey,
+            isValid: isValid(),
+            validationDetails: {
+              summaryValid: formData.summary.trim() !== '',
+              epicValid: formData.epic.trim() !== '',
+              projectKeyValid: projectKey !== null && projectKey !== undefined
+            },
+            errors,
+            isSubmitted,
+            isLoading
+          }, null, 2)}
+        </pre>
       </div>
     </div>
   );
