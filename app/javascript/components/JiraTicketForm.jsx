@@ -1,5 +1,8 @@
 import React, { forwardRef, useImperativeHandle, useState, useEffect, useRef } from 'react';
 import CollapsedTicket from './CollapsedTicket';
+import TicketHeader from './TicketHeader';
+import FormField from './FormField';
+import SubmitButtons from './SubmitButtons';
 
 const JiraTicketForm = forwardRef(({ 
   id, 
@@ -192,183 +195,56 @@ const JiraTicketForm = forwardRef(({
 
   const expandedContent = (
     <div className={containerClasses}>
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => handleCollapse(true)}
-            className="text-slate-400 hover:text-slate-600 transition-colors"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
-            </svg>
-          </button>
-          {isSubmitted && ticketKey && jiraUrl && (
-            <a
-              href={`https://${jiraUrl}/browse/${ticketKey}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-500 hover:text-indigo-600 text-sm font-medium"
-            >
-              {ticketKey} ↗
-            </a>
-          )}
-        </div>
-      </div>
+      <TicketHeader 
+        handleCollapse={handleCollapse}
+        isSubmitted={isSubmitted}
+        ticketKey={ticketKey}
+        jiraUrl={jiraUrl}
+      />
 
       <div className={`font-mono text-sm ${isSubmitted ? 'opacity-75' : ''}`}>
         {'{'}
         <div className="ml-4 space-y-2">
-          <div className="flex items-start">
-            <span className="text-blue-600">"summary"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded">
-                  {formData.summary}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="summary"
-                  value={formData.summary}
-                  onChange={handleInputChange}
-                  className={`w-full p-1 font-sans border rounded ${
-                    errors.summary ? 'border-rose-500' : 'border-gray-300'
-                  }`}
-                />
-              )}
-              {showValidation && errors.summary && (
-                <p className="mt-1 text-sm text-rose-500 font-sans">{errors.summary}</p>
-              )}
-            </div>
-            <span className="ml-2 text-gray-600">,</span>
-          </div>
+          <FormField
+            name="summary"
+            label="summary"
+            value={formData.summary}
+            onChange={handleInputChange}
+            error={errors.summary}
+            showValidation={showValidation}
+            isSubmitted={isSubmitted}
+          />
+          
+          <FormField
+            name="description"
+            label="description"
+            value={formData.description}
+            onChange={handleInputChange}
+            isTextarea={true}
+            isSubmitted={isSubmitted}
+          />
 
-          <div className="flex items-start">
-            <span className="text-blue-600">"description"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded whitespace-pre-wrap">
-                  {formData.description || <span className="text-gray-400">No description</span>}
-                </div>
-              ) : (
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full p-1 font-sans border border-gray-300 rounded"
-                />
-              )}
-            </div>
-            <span className="ml-2 text-gray-600">,</span>
-          </div>
-
-          <div className="flex items-start">
-            <span className="text-blue-600">"epic"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded">
-                  {formData.epic}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="epic"
-                  value={formData.epic}
-                  onChange={handleInputChange}
-                  className={`w-full p-1 font-sans border rounded ${
-                    errors.epic ? 'border-rose-500' : 'border-gray-300'
-                  }`}
-                />
-              )}
-              {showValidation && errors.epic && (
-                <p className="mt-1 text-sm text-rose-500 font-sans">{errors.epic}</p>
-              )}
-            </div>
-            <span className="ml-2 text-gray-600">,</span>
-          </div>
-
-          <div className="flex items-start">
-            <span className="text-blue-600">"assignee"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded">
-                  {formData.assignee || <span className="text-gray-400">Unassigned</span>}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="assignee"
-                  value={formData.assignee}
-                  onChange={handleInputChange}
-                  className="w-full p-1 font-sans border border-gray-300 rounded"
-                />
-              )}
-            </div>
-            <span className="ml-2 text-gray-600">,</span>
-          </div>
-
-          <div className="flex items-start">
-            <span className="text-blue-600">"labels"</span>
-            <span className="mx-2 text-gray-600">:</span>
-            <div className="flex-1">
-              {isSubmitted ? (
-                <div className="p-1 font-sans bg-slate-50 border border-gray-200 rounded">
-                  {formData.labels || <span className="text-gray-400">No labels</span>}
-                </div>
-              ) : (
-                <input
-                  type="text"
-                  name="labels"
-                  value={formData.labels}
-                  onChange={handleInputChange}
-                  className="w-full p-1 font-sans border border-gray-300 rounded"
-                />
-              )}
-            </div>
-          </div>
+          <FormField
+            name="epic"
+            label="epic"
+            value={formData.epic}
+            onChange={handleInputChange}
+            error={errors.epic}
+            showValidation={showValidation}
+            isSubmitted={isSubmitted}
+          />
         </div>
         {'}'}
       </div>
 
-      <div className="flex justify-end gap-2 mt-4">
-        <button
-          type="button"
-          onClick={() => {
-            handleSubmit();
-          }}
-          disabled={!isValid() || isSubmitted || isLoading}
-          className={`${
-            isValid() && !isSubmitted && !isLoading
-              ? 'bg-indigo-500 hover:bg-indigo-600'
-              : 'bg-slate-400'
-          } text-white font-medium py-2 px-4 rounded transition-colors relative`}
-        >
-          {isLoading ? (
-            <span className="flex items-center">
-              <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-              Submitting...
-            </span>
-          ) : isSubmitted ? 'Submitted' : 'Submit Ticket'}
-        </button>
-        {showRemoveButton && !isSubmitted && (
-          <button
-            type="button"
-            onClick={handleRemove}
-            className="bg-rose-500 hover:bg-rose-600 text-white font-medium py-2 px-4 rounded transition-colors"
-            disabled={isLoading}
-          >
-            Remove
-          </button>
-        )}
-      </div>
+      <SubmitButtons 
+        isValid={isValid}
+        isSubmitted={isSubmitted}
+        isLoading={isLoading}
+        handleSubmit={handleSubmit}
+        handleRemove={handleRemove}
+        showRemoveButton={showRemoveButton}
+      />
     </div>
   );
 
@@ -381,12 +257,11 @@ const JiraTicketForm = forwardRef(({
       validateForm={validateForm}
       handleSubmit={handleSubmit}
       handleCollapse={handleCollapse}
-      onRemove={handleRemove}
+      onRemove={onRemove}
       showRemoveButton={showRemoveButton}
-      isLoading={isLoading}
-      containerClasses={containerClasses}
       ticketKey={ticketKey}
       jiraUrl={jiraUrl}
+      isLoading={isLoading}
     />
   ) : expandedContent;
 
