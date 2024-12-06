@@ -25,6 +25,8 @@ const JiraTicketForm = forwardRef(({
   const [isNew, setIsNew] = useState(true);
   const contentRef = useRef(null);
   const [projectKey, setProjectKey] = useState(null);
+  const [ticketKey, setTicketKey] = useState(null);
+  const [jiraUrl, setJiraUrl] = useState(null);
 
   useEffect(() => {
     fetch('/api/config')
@@ -32,6 +34,7 @@ const JiraTicketForm = forwardRef(({
       .then(data => {
         if (data.jira_project_key) {
           setProjectKey(data.jira_project_key);
+          setJiraUrl(data.jira_url);
         }
       })
       .catch(error => {
@@ -101,6 +104,7 @@ const JiraTicketForm = forwardRef(({
       
       if (data.success) {
         setIsSubmitted(true);
+        setTicketKey(data.ticket_key);
         onSubmit({ ...formData, ticketKey: data.ticket_key });
       } else {
         console.error('Failed to create JIRA ticket:', data.error);
@@ -370,6 +374,8 @@ const JiraTicketForm = forwardRef(({
       showRemoveButton={showRemoveButton}
       isLoading={isLoading}
       containerClasses={containerClasses}
+      ticketKey={ticketKey}
+      jiraUrl={jiraUrl}
     />
   ) : expandedContent;
 

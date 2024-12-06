@@ -9,7 +9,9 @@ const CollapsedTicket = ({
   handleSubmit,
   handleCollapse,
   onRemove,
-  showRemoveButton
+  showRemoveButton,
+  ticketKey,
+  jiraUrl
 }) => {
   return (
     <div 
@@ -20,12 +22,26 @@ const CollapsedTicket = ({
           className="flex-1 cursor-pointer"
           onClick={() => handleCollapse(false)}
         >
-          <span className="font-medium">{formData.summary}</span>
-          <span className="mx-2 text-slate-400">|</span>
-          <span className="text-slate-600">Epic: {formData.epic}</span>
-          {isSubmitted && (
-            <span className="ml-2 text-emerald-500 text-sm">✓ Submitted</span>
-          )}
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{formData.summary}</span>
+            {isSubmitted && ticketKey && (
+              <a
+                href={`https://${jiraUrl}/browse/${ticketKey}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-500 hover:text-indigo-600 text-sm font-medium"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {ticketKey} ↗
+              </a>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-slate-600">
+            <span>Epic: {formData.epic}</span>
+            {isSubmitted && (
+              <span className="text-emerald-500 text-sm">✓ Submitted</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-4">
           {showValidation && !isValid() && (
