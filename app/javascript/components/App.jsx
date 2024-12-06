@@ -89,43 +89,34 @@ const App = () => {
     }, 250);
   };
 
-  const handleSubmitAll = () => {
+  const handleSubmitAll = async () => {
     const refs = Object.values(ticketRefs.current).filter(Boolean);
     let invalidCount = 0;
     let validCount = 0;
     let totalUnsubmitted = 0;
     
-    // Count unsubmitted tickets and validate them
+    // First pass: validate all tickets
     refs.forEach(ref => {
       if (!ref.isSubmitted()) {
         totalUnsubmitted++;
-        const isValid = ref.validate();
-        if (!isValid) {
+        if (!ref.isValid()) {
           ref.showValidationErrors();
           invalidCount++;
         }
       }
     });
 
-    // Submit all valid tickets
-    refs.forEach(ref => {
-      if (!ref.isSubmitted()) {
-        const isValid = ref.validate();
-        if (isValid) {
-          const data = ref.getFormData();
-          handleSubmit(null, data);
-          ref.setSubmitted(true);
-          validCount++;
-        }
+    // Second pass: submit valid tickets
+    for (const ref of refs) {
+      if (!ref.isSubmitted() && ref.isValid()) {
+        await ref.submit();
+        validCount++;
       }
-      // Collapse all tickets, regardless of submission status
       ref.setCollapsed(true);
-    });
+    }
 
-    // Update areAllCollapsed state
     setAreAllCollapsed(true);
 
-    // Always show a message about the results
     if (totalUnsubmitted > 0) {
       if (invalidCount > 0) {
         setSubmitMessage({
@@ -137,7 +128,6 @@ const App = () => {
           type: 'success',
           text: `All ${validCount} ticket${validCount !== 1 ? 's' : ''} submitted successfully!`
         });
-        // Show fireworks when all tickets are submitted successfully
         showFireworks();
       }
     }

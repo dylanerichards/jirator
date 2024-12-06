@@ -187,21 +187,15 @@ const JiraTicketForm = forwardRef(({
   };
 
   useImperativeHandle(ref, () => ({
-    validate: isValid,
-    showValidationErrors: () => {
-      validateForm();
-      setShowValidation(true);
-    },
-    getFormData: () => formData,
-    setSubmitted: (value) => {
-      setIsSubmitted(value);
-    },
+    submit: handleSubmit,
+    isValid: () => isValid(),
     isSubmitted: () => isSubmitted,
-    setCollapsed: (value) => {
-      handleCollapse(value);
-    },
+    validate: validateForm,
+    showValidationErrors: () => setShowValidation(true),
+    getFormData: () => formData,
+    setCollapsed: handleCollapse,
     isCollapsed: () => isCollapsed,
-    setLoading: (value) => setIsLoading(value)
+    setSubmitted: (value) => setIsSubmitted(value)
   }));
 
   const containerClasses = `
