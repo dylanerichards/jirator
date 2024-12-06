@@ -5,7 +5,15 @@ import confetti from 'canvas-confetti';
 const JiraTicketGenerator = () => {
   const [tickets, setTickets] = useState([{ 
     id: 1, 
-    categoryId: 'default'
+    categoryId: 'default',
+    isSubmitted: false,
+    data: { 
+      summary: '',
+      description: '',
+      epic: '',
+      assignee: '',
+      labels: ''
+    }
   }]);
   const [submitMessage, setSubmitMessage] = useState(null);
   const ticketRefs = useRef({});
@@ -42,7 +50,15 @@ const JiraTicketGenerator = () => {
   const handleAddTicket = () => {
     setTickets(prev => [...prev, { 
       id: prev.length + 1,
-      categoryId: 'default'
+      categoryId: 'default',
+      isSubmitted: false,
+      data: { 
+        summary: '',
+        description: '',
+        epic: '',
+        assignee: '',
+        labels: ''
+      }
     }]);
   };
 
@@ -52,12 +68,26 @@ const JiraTicketGenerator = () => {
 
   const handleSubmitAll = async () => {
     console.log('Submitting all tickets...');
-    const ticketElements = Object.values(ticketRefs.current);
+    const ticketElements = Object.values(ticketRefs.current).map(ref => ref.current).filter(Boolean);
     
     if (ticketElements.length === 0) {
       setSubmitMessage({
         type: 'warning',
         text: 'No tickets to submit'
+      });
+      return;
+    }
+
+    // First validate all tickets
+    const invalidTickets = ticketElements.filter(
+      ticket => ticket && !ticket.isSubmitted() && !ticket.isValid()
+    );
+
+    if (invalidTickets.length > 0) {
+      invalidTickets.forEach(ticket => ticket.showValidationErrors());
+      setSubmitMessage({
+        type: 'warning',
+        text: `${invalidTickets.length} ticket${invalidTickets.length !== 1 ? 's' : ''} need${invalidTickets.length === 1 ? 's' : ''} to be corrected.`
       });
       return;
     }
@@ -82,9 +112,14 @@ const JiraTicketGenerator = () => {
     // Submit all tickets in sequence
     for (const ticket of pendingTickets) {
       try {
-        await ticket.submit();
-        successCount++;
-        console.log('Ticket submitted successfully');
+        const success = await ticket.submit();
+        if (success) {
+          successCount++;
+          console.log('Ticket submitted successfully');
+        } else {
+          errorCount++;
+          console.error('Ticket submission returned false');
+        }
       } catch (error) {
         errorCount++;
         console.error('Error submitting ticket:', error);
@@ -111,6 +146,22 @@ const JiraTicketGenerator = () => {
     ));
   };
 
+  const handleTicketDataUpdate = (ticketId, newData) => {
+    setTickets(prev => prev.map(ticket => 
+      ticket.id === ticketId 
+        ? { ...ticket, data: newData }
+        : ticket
+    ));
+  };
+
+  const handleTicketSubmitted = (ticketId) => {
+    setTickets(prev => prev.map(ticket => 
+      ticket.id === ticketId 
+        ? { ...ticket, isSubmitted: true }
+        : ticket
+    ));
+  };
+
   return (
     <div className="p-4">
       {submitMessage && (
@@ -125,7 +176,6 @@ const JiraTicketGenerator = () => {
         </div>
       )}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">JIRA Ticket Generator</h1>
         <div className="space-x-2">
           <button
             onClick={handleSubmitAll}
@@ -143,18 +193,28 @@ const JiraTicketGenerator = () => {
       </div>
 
       <CategoryManager 
-        tickets={tickets.map(ticket => ({
-          ...ticket,
-          ref: el => ticketRefs.current[ticket.id] = el,
-          onRemove: () => handleRemoveTicket(ticket.id),
-          onSubmit: (data) => {
-            console.log(`Ticket ${ticket.id} submitted:`, data);
-          },
-          showRemoveButton: tickets.length > 1,
-          onCollapseChange: () => {
-            // Handle collapse change if needed
-          }
-        }))}
+        tickets={tickets.map(ticket => {
+          const ref = React.createRef();  // Create a ref for each ticket
+          ticketRefs.current[ticket.id] = ref;  // Store the ref
+          
+          return {
+            ...ticket,
+            ref,  // Pass the ref instead of the ref callback
+            onRemove: () => handleRemoveTicket(ticket.id),
+            onSubmit: (data) => {
+              handleTicketDataUpdate(ticket.id, data);
+              handleTicketSubmitted(ticket.id);
+              console.log(`Ticket ${ticket.id} submitted:`, data);
+            },
+            showRemoveButton: tickets.length > 1,
+            onCollapseChange: () => {
+              // Handle collapse change if needed
+            },
+            initialData: ticket.data,
+            onChange: (newData) => !ticket.isSubmitted && handleTicketDataUpdate(ticket.id, newData),
+            isSubmitted: ticket.isSubmitted
+          };
+        })}
         onMoveTicket={handleMoveTicket}
       />
     </div>

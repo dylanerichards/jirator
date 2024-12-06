@@ -8,6 +8,20 @@ const Category = ({ category, tickets, onDragOver, onDrop, onRemove }) => {
     onDrop(ticketId);
   };
 
+  const handleSubmitCategory = async () => {
+    const unsubmittedTickets = tickets.filter(ticket => !ticket.isSubmitted);
+    if (unsubmittedTickets.length === 0) {
+      alert('No tickets to submit in this category');
+      return;
+    }
+
+    for (const ticket of unsubmittedTickets) {
+      if (ticket.ref && ticket.ref.current) {
+        await ticket.ref.current.submit();
+      }
+    }
+  };
+
   const colorClasses = {
     slate: 'bg-slate-50 border-slate-200',
     blue: 'bg-blue-50 border-blue-200',
@@ -17,6 +31,8 @@ const Category = ({ category, tickets, onDragOver, onDrop, onRemove }) => {
     purple: 'bg-purple-50 border-purple-200',
   };
 
+  const unsubmittedCount = tickets.filter(t => !t.isSubmitted).length;
+
   return (
     <div
       className={`p-4 rounded-lg border-2 ${colorClasses[category.color] || colorClasses.slate}`}
@@ -24,7 +40,17 @@ const Category = ({ category, tickets, onDragOver, onDrop, onRemove }) => {
       onDrop={handleDrop}
     >
       <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">{category.name}</h3>
+        <div className="flex items-center gap-4">
+          <h3 className="text-lg font-semibold">{category.name}</h3>
+          {unsubmittedCount > 0 && (
+            <button
+              onClick={handleSubmitCategory}
+              className="bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-medium py-1 px-3 rounded transition-colors"
+            >
+              Submit Category ({unsubmittedCount})
+            </button>
+          )}
+        </div>
         {onRemove && (
           <button
             onClick={onRemove}
@@ -50,10 +76,13 @@ const Category = ({ category, tickets, onDragOver, onDrop, onRemove }) => {
               {...ticket}
               ref={ticket.ref}
               id={ticket.id}
+              initialData={ticket.data}
+              onChange={ticket.onChange}
               onRemove={ticket.onRemove}
               showRemoveButton={ticket.showRemoveButton}
               onSubmit={ticket.onSubmit}
               onCollapseChange={ticket.onCollapseChange}
+              isSubmitted={ticket.isSubmitted}
             />
           </div>
         ))}

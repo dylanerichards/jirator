@@ -7,10 +7,12 @@ import SubmitButtons from './SubmitButtons';
 const JiraTicketForm = forwardRef(({ 
   id, 
   initialData, 
+  onChange,
   onRemove, 
   showRemoveButton, 
   onSubmit, 
-  onCollapseChange
+  onCollapseChange,
+  isSubmitted
 }, ref) => {
   const [formData, setFormData] = useState(initialData || {
     summary: '',
@@ -21,7 +23,6 @@ const JiraTicketForm = forwardRef(({
   });
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [errors, setErrors] = useState({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isRemoving, setIsRemoving] = useState(false);
@@ -45,12 +46,21 @@ const JiraTicketForm = forwardRef(({
       });
   }, []);
 
+  useEffect(() => {
+    if (onChange) {
+      onChange(formData);
+    }
+  }, [formData, onChange]);
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: value
+      };
+      return newData;
+    });
     if (showValidation) {
       validateForm();
     }
@@ -84,7 +94,7 @@ const JiraTicketForm = forwardRef(({
     if (!isValid()) {
       validateForm();
       setShowValidation(true);
-      return;
+      return false;
     }
 
     setIsLoading(true);
@@ -106,16 +116,18 @@ const JiraTicketForm = forwardRef(({
       const data = await response.json();
       
       if (data.success) {
-        setIsSubmitted(true);
         setTicketKey(data.ticket_key);
-        onSubmit({ ...formData, ticketKey: data.ticket_key });
+        onSubmit(formData);
+        return true;
       } else {
         console.error('Failed to create JIRA ticket:', data.error);
         alert(`Failed to create JIRA ticket: ${data.error}`);
+        return false;
       }
     } catch (error) {
       console.error('Error creating JIRA ticket:', error);
       alert('Error creating JIRA ticket. Please try again.');
+      return false;
     } finally {
       setIsLoading(false);
     }
@@ -176,8 +188,7 @@ const JiraTicketForm = forwardRef(({
     showValidationErrors: () => setShowValidation(true),
     getFormData: () => formData,
     setCollapsed: handleCollapse,
-    isCollapsed: () => isCollapsed,
-    setSubmitted: (value) => setIsSubmitted(value)
+    isCollapsed: () => isCollapsed
   }));
 
   const containerClasses = `
