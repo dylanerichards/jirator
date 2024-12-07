@@ -21,8 +21,12 @@ const CategoryManager = ({
   };
 
   const handleRemoveCategory = (categoryId) => {
-    // Move tickets from the removed category back to 'Uncategorized'
-    onMoveTicket(categoryId, 'default');
+    // Move all tickets from the removed category back to 'default'
+    tickets
+      .filter(ticket => ticket.categoryId === categoryId)
+      .forEach(ticket => onMoveTicket(ticket.id, 'default'));
+
+    // Remove the category
     setCategories(prev => prev.filter(cat => cat.id !== categoryId));
   };
 
