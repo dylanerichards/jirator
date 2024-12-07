@@ -1,7 +1,15 @@
 import React from 'react';
 import Category from './Category';
 
-const CategoryList = ({ categories, tickets, onMoveTicket, onRemoveCategory }) => {
+const CategoryList = ({ 
+  categories, 
+  tickets, 
+  onMoveTicket, 
+  onRemoveCategory, 
+  onAddTicket,
+  setSubmitMessage,
+  showFireworks
+}) => {
   const handleDragOver = (e) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -17,6 +25,9 @@ const CategoryList = ({ categories, tickets, onMoveTicket, onRemoveCategory }) =
           onDragOver={handleDragOver}
           onDrop={(ticketId) => onMoveTicket(ticketId, category.id)}
           onRemove={category.id !== 'default' ? () => onRemoveCategory(category.id) : null}
+          onAddTicket={onAddTicket}
+          setSubmitMessage={setSubmitMessage}
+          showFireworks={showFireworks}
         />
       ))}
     </div>

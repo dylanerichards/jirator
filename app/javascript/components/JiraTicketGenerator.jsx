@@ -51,9 +51,29 @@ const JiraTicketGenerator = () => {
   };
 
   const handleAddTicket = () => {
+    const newId = Math.max(0, ...tickets.map(t => t.id)) + 1;
     setTickets(prev => [...prev, { 
-      id: prev.length + 1,
+      id: newId,
       categoryId: 'default',
+      isSubmitted: false,
+      isCollapsed: false,
+      ticketKey: null,
+      jiraUrl: null,
+      data: { 
+        summary: '',
+        description: '',
+        epic: '',
+        assignee: '',
+        labels: ''
+      }
+    }]);
+  };
+
+  const handleAddTicketToCategory = (categoryId) => {
+    const newId = Math.max(0, ...tickets.map(t => t.id)) + 1;
+    setTickets(prev => [...prev, { 
+      id: newId,
+      categoryId,
       isSubmitted: false,
       isCollapsed: false,
       ticketKey: null,
@@ -84,68 +104,98 @@ const JiraTicketGenerator = () => {
       return;
     }
 
-    // First validate all tickets and show validation errors
-    let invalidCount = 0;
-    ticketElements.forEach(ticket => {
-      if (!ticket.isSubmitted() && !ticket.isValid()) {
-        ticket.showValidationErrors();
-        invalidCount++;
+    // First validate all tickets and collect validation results
+    const validationResults = ticketElements.map(ticket => {
+      if (ticket.isSubmitted()) {
+        return { ticket, status: 'already-submitted' };
       }
+      
+      if (!ticket.isValid()) {
+        ticket.showValidationErrors();
+        return { ticket, status: 'invalid' };
+      }
+      
+      return { ticket, status: 'valid' };
     });
 
-    if (invalidCount > 0) {
+    const validTickets = validationResults.filter(r => r.status === 'valid');
+    const invalidTickets = validationResults.filter(r => r.status === 'invalid');
+    const alreadySubmitted = validationResults.filter(r => r.status === 'already-submitted');
+
+    // If no valid tickets and some invalid ones, show error
+    if (validTickets.length === 0 && invalidTickets.length > 0) {
       setSubmitMessage({
         type: 'warning',
-        text: `${invalidCount} ticket${invalidCount !== 1 ? 's' : ''} need${invalidCount === 1 ? 's' : ''} to be corrected.`
+        text: `${invalidTickets.length} ticket${invalidTickets.length !== 1 ? 's' : ''} need${invalidTickets.length === 1 ? 's' : ''} to be corrected.`
       });
       return;
     }
 
-    const pendingTickets = ticketElements.filter(
-      ticket => ticket && !ticket.isSubmitted() && ticket.isValid()
-    );
-
-    console.log('Pending tickets:', pendingTickets.length);
-
-    if (pendingTickets.length === 0) {
+    // If no tickets to submit at all, show message
+    if (validTickets.length === 0) {
       setSubmitMessage({
         type: 'warning',
-        text: 'No valid tickets to submit'
+        text: alreadySubmitted.length > 0 ? 'All tickets have already been submitted.' : 'No valid tickets to submit'
       });
       return;
     }
 
     let successCount = 0;
     let errorCount = 0;
+    const errors = [];
 
-    // Submit all tickets in sequence
-    for (const ticket of pendingTickets) {
+    // Submit all valid tickets in sequence
+    for (const { ticket } of validTickets) {
       try {
         const success = await ticket.submit();
         if (success) {
           successCount++;
-          console.log('Ticket submitted successfully');
         } else {
           errorCount++;
-          console.error('Ticket submission returned false');
+          errors.push({ summary: ticket.getFormData().summary, error: 'Submission failed' });
         }
       } catch (error) {
         errorCount++;
-        console.error('Error submitting ticket:', error);
+        errors.push({ summary: ticket.getFormData().summary, error: error.message });
       }
     }
 
-    if (errorCount === 0) {
-      setSubmitMessage({
-        type: 'success',
-        text: `All ${successCount} ticket${successCount !== 1 ? 's' : ''} submitted successfully!`
-      });
+    // Construct detailed message
+    let message = '';
+    const parts = [];
+
+    if (successCount > 0) {
+      parts.push(`${successCount} ticket${successCount !== 1 ? 's' : ''} submitted successfully`);
+    }
+    
+    if (errorCount > 0) {
+      parts.push(`${errorCount} failed`);
+    }
+    
+    if (invalidTickets.length > 0) {
+      parts.push(`${invalidTickets.length} invalid`);
+    }
+    
+    if (alreadySubmitted.length > 0) {
+      parts.push(`${alreadySubmitted.length} already submitted`);
+    }
+
+    message = parts.join(', ');
+
+    // If there were any errors, add error details
+    if (errors.length > 0) {
+      message += '\n\nErrors:\n' + errors.map(e => 
+        `• "${e.summary}": ${e.error}`
+      ).join('\n');
+    }
+
+    setSubmitMessage({
+      type: errorCount === 0 && invalidTickets.length === 0 ? 'success' : 'warning',
+      text: message
+    });
+
+    if (errorCount === 0 && invalidTickets.length === 0) {
       showFireworks();
-    } else {
-      setSubmitMessage({
-        type: 'warning',
-        text: `${successCount} of ${pendingTickets.length} tickets submitted. ${errorCount} ticket${errorCount !== 1 ? 's' : ''} failed.`
-      });
     }
   };
 
@@ -188,7 +238,7 @@ const JiraTicketGenerator = () => {
     <div className="p-4">
       {submitMessage && (
         <div 
-          className={`mb-4 p-4 rounded-md ${
+          className={`mb-4 p-4 rounded-md whitespace-pre-wrap ${
             submitMessage.type === 'warning' 
               ? 'bg-amber-50 border border-amber-200 text-amber-800' 
               : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
@@ -239,6 +289,9 @@ const JiraTicketGenerator = () => {
           };
         })}
         onMoveTicket={handleMoveTicket}
+        onAddTicket={handleAddTicketToCategory}
+        setSubmitMessage={setSubmitMessage}
+        showFireworks={showFireworks}
       />
     </div>
   );

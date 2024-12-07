@@ -25,7 +25,7 @@ const CategoryCreator = ({ onAdd }) => {
   };
 
   return (
-    <div className="mb-4">
+    <div className="inline-block">
       {!isOpen ? (
         <button
           onClick={() => setIsOpen(true)}
@@ -37,16 +37,16 @@ const CategoryCreator = ({ onAdd }) => {
           Add Category
         </button>
       ) : (
-        <form onSubmit={handleSubmit} className="flex items-end gap-2">
-          <div className="flex-1">
+        <form onSubmit={handleSubmit} className="inline-flex items-end gap-2">
+          <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Category Name
+              Name
             </label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 rounded-md"
+              className="w-48 px-3 py-2 border border-slate-300 rounded-md"
               placeholder="Enter category name"
               autoFocus
             />
@@ -58,7 +58,7 @@ const CategoryCreator = ({ onAdd }) => {
             <select
               value={color}
               onChange={(e) => setColor(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-md"
+              className="w-32 px-3 py-2 border border-slate-300 rounded-md"
             >
               {colors.map(({ id, label }) => (
                 <option key={id} value={id}>{label}</option>

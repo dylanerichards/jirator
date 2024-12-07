@@ -2,7 +2,13 @@ import React, { useState } from 'react';
 import CategoryList from './CategoryList';
 import CategoryCreator from './CategoryCreator';
 
-const CategoryManager = ({ tickets, onMoveTicket }) => {
+const CategoryManager = ({ 
+  tickets, 
+  onMoveTicket, 
+  onAddTicket, 
+  setSubmitMessage, 
+  showFireworks 
+}) => {
   const [categories, setCategories] = useState([
     { id: 'default', name: 'Uncategorized', color: 'slate' }
   ]);
@@ -28,6 +34,9 @@ const CategoryManager = ({ tickets, onMoveTicket }) => {
         tickets={tickets}
         onMoveTicket={onMoveTicket}
         onRemoveCategory={handleRemoveCategory}
+        onAddTicket={onAddTicket}
+        setSubmitMessage={setSubmitMessage}
+        showFireworks={showFireworks}
       />
     </div>
   );
